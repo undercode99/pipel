@@ -47,4 +47,5 @@ def main():
     except Exception as e:
         l = Logs()
         l.error(e)
-        l.error(traceback.format_exc())
+        if arguments['--verbose']:
+          l.error(traceback.format_exc())

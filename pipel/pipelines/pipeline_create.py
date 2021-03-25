@@ -30,8 +30,14 @@ def extract_data(opt):
 
         with open(self._pathPipelines("extract.py"), 'w+') as f:
             f.write(extract_content)
-        
+
+    def createConfigDefault(self):
+        config = f"""path_storage: {self._storagePipelines()}"""
+        with open(self._pathPipelines("config.yaml"), "w+") as f:
+            f.write(config)
+
     def create(self):
         self.checkExistsPipelines()
         self.createDirPipelines()
         self.createFilePipelines()
+        self.createConfigDefault()

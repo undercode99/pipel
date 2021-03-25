@@ -1,4 +1,5 @@
-from pipel.pipelines.pipeline_run import RunPipelines
+from pipel.pipelines.pipeline_run import RunStepsJobPipelines
+from pipel.pipelines.pipeline_config import ConfigYamlPipeline
 from pipel.pipelines.pipeline_create import CreatePipelines
 from pipel.new import new_project
 from pipel.config_loader import load_config
@@ -14,10 +15,15 @@ from pipel.pipelines.pipeline import Pipelines
 """ Pipeline services """
 def run_pipeline(name, verbose=False):
     load_config()
-    runpipe = RunPipelines(name)
+    config = ConfigYamlPipeline(name)
+    config.load()
+
+    runpipe = RunStepsJobPipelines(name)
     runpipe.setVerbose(verbose)
-    runpipe.run()
-    create_report_pipeline(name, runpipe.runner_id,runpipe.logs_pipeline)
+    runpipe.run(
+        jobs=config.jobs(),
+        steps_job=config.steps_job()
+    )
 
 def create_pipeline(name):
     load_config()

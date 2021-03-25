@@ -10,7 +10,7 @@ class StorageLocalFunction:
         self.option = option
 
     def path(self, pth=""):
-        return f"{self.option['dir_location']}/{self.option['name_pipeline']}/{self.option['runner_id']}/{pth}"
+        return f"{self.option['dir_location']}/{self.option['name_pipeline']}/{pth}"
     
     def removeStorage(self):
         if os.path.exists(self.path()):
@@ -28,12 +28,18 @@ class StorageLocalFunction:
             return size
         return recursive_dir_size(self.path())
 
+class StorageSftpFunction:
+    pass
+
+class StorageFtpFunction:
+    pass
+
 class StorageFunction:
 
     info_logs = []
 
     def __setup(self, option):
-
+        print(option)
         if option['type'] == "local":
             self.object_storage = StorageLocalFunction(option)
         else:
@@ -41,6 +47,7 @@ class StorageFunction:
 
     def getPathConfig(self, name):
         cfg = use_config()
+        print(cfg)
         return f"{cfg['logs_data']}/{name}/pipeline_runner_*.json"
 
     def checkInfoLogsData(self, name):
@@ -49,10 +56,9 @@ class StorageFunction:
 
         for json_runner in glob(file_path):
             dtjson = json.loads(open(json_runner).read())
-            self.__setup({**dtjson['storage']['option'], **{"name_pipeline": name, "runner_id": dtjson["runner_id"]}})
+            self.__setup({**dtjson['storage']['option'], **{"name_pipeline": name}})
             self.info_logs.append({
                 "name": dtjson["name"],
-                "runner_id": dtjson["runner_id"],
                 "finish_time": dtjson['running'],
                 "data_size": self.object_storage.dataSize()
             })
@@ -62,6 +68,6 @@ class StorageFunction:
         file_path = self.getPathConfig(name)
         for json_runner in glob(file_path):
             dtjson = json.loads(open(json_runner).read())
-            self.__setup({**dtjson['storage']['option'], **{"name_pipeline": name, "runner_id": dtjson["runner_id"]}})
+            self.__setup({**dtjson['storage']['option'], **{"name_pipeline": name}})
             self.object_storage.removeStorage()
-            print(f"Remove {name} ID:{dtjson['runner_id']} Success !!!")
+            print(f"Removing storage {name} Success !!!")
