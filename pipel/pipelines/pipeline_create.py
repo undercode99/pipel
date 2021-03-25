@@ -32,7 +32,7 @@ def extract_data(opt):
             f.write(extract_content)
 
     def createConfigDefault(self):
-        config = f"""path_storage: {self._storagePipelines()}"""
+        config = f""""""
         with open(self._pathPipelines("config.yaml"), "w+") as f:
             f.write(config)
 
