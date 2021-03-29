@@ -30,7 +30,9 @@ def main():
     arguments = docopt(__doc__, version='Pipel 1.0')
     try:
         if arguments['run'] == True:
-            run_pipeline(arguments['<name>'], arguments['--verbose'])
+            run_pipeline(
+              name=arguments['<name>'], 
+              verbose=arguments['--verbose'])
 
         if arguments['create'] == True:
             create_pipeline(arguments['<name>'])

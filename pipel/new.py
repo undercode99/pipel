@@ -47,9 +47,9 @@ Enter dir project:
 cd {dirname}
 
 Try create pipelines:
-reetl create <name_pipeline>
+pipel create <name_pipeline>
 
-Ex: reetl create scrap_web_data
+Ex: pipel create scrap_web_data
     """
     Logs().success(message)
 

@@ -12,27 +12,45 @@ class CreatePipelines(Pipelines):
         os.mkdir(self._pathPipelines())
     
     def createFilePipelines(self):
-        main_content = """
-from extract import extract_data
-
-pipelines = {
-    "extract": extract_data
-}
-""" 
         extract_content = """
 
-def extract_data(opt):
+def extract_data():
     # Somting do here
     print(f"Hi, Iam Pipeline {opt['name']}")
+    return "data from extract"
 """
-        with open(self._pathPipelines("__init__.py"), 'w+') as f:
-            f.write(main_content)
+
+        ingest_content = """
+
+def ingest_data(data_extract):
+    print("ingest data", data_extract)
+"""
 
         with open(self._pathPipelines("extract.py"), 'w+') as f:
             f.write(extract_content)
 
+        with open(self._pathPipelines("ingest.py"), 'w+') as f:
+            f.write(ingest_content)
+
     def createConfigDefault(self):
-        config = f""""""
+        config = f"""
+jobs:
+  extract_data:
+    scripts: extract:extract_data
+  ingest_data:
+    scripts: ingest:ingest_data
+  print_success:
+    type: sh
+    scripts: 'echo "Process is success !!!"'
+
+run_step_jobs:
+  main:
+    extract_data:
+    ingest_data: 
+      upstream: extract_data
+    print_success: 
+      upstream: ['extract_data', 'ingest_data']
+        """
         with open(self._pathPipelines("config.yaml"), "w+") as f:
             f.write(config)
 

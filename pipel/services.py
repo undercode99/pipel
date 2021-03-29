@@ -1,6 +1,9 @@
-from pipel.pipelines.pipeline_run import RunStepsJobPipelines
+from pipel.pipelines.pipeline_run import RunPipelines
+from pipel.pipelines.pipeline_step_job import StepRunnerJobManagerPipeline, StepJob
+from pipel.pipelines.pipeline_job import Jobs
 from pipel.pipelines.pipeline_config import ConfigYamlPipeline
 from pipel.pipelines.pipeline_create import CreatePipelines
+
 from pipel.new import new_project
 from pipel.config_loader import load_config
 from pipel.reporting import create_report_pipeline
@@ -13,17 +16,44 @@ from pipel.pipelines.pipeline import Pipelines
 
 
 """ Pipeline services """
-def run_pipeline(name, verbose=False):
+def run_pipeline(name, step='main', verbose=False):
     load_config()
     config = ConfigYamlPipeline(name)
     config.load()
 
-    runpipe = RunStepsJobPipelines(name)
-    runpipe.setVerbose(verbose)
-    runpipe.run(
-        jobs=config.jobs(),
-        steps_job=config.steps_job()
-    )
+    jobs = config.jobs()
+    jobs = Jobs(jobs=jobs)
+    steps_job = config.steps_job(step=step)
+    
+    
+    step = RunPipelines(jobs, StepRunnerJobManagerPipeline(name))
+    step.setVerbose(verbose)
+
+    for name, option_step in steps_job.items():
+        step_job = StepJob(name)
+
+        if option_step is None:
+            option_step = {}
+
+        if 'upstream' in option_step:
+          step_job.setUpstream(option_step['upstream'])
+        
+        if 'break_error' in option_step:
+          step_job.setBreakError(option_step['break_error'])
+
+        if 'retry_error' in option_step:
+          step_job.setRetryError(option_step['retry_error'])
+
+        if 'sleep_time' in option_step:
+          step_job.setTimeSleep(option_step['sleep_time'])
+
+        if 'must_done_all_upstream' in option_step:
+          step_job.setMustDoneAllUpstream(option_step['must_done_all_upstream'])
+
+        step.addStep(step_job)
+    step.run()
+
+
 
 def create_pipeline(name):
     load_config()
@@ -32,7 +62,6 @@ def create_pipeline(name):
 
 def create_new_project(name):
     new_project(name)
-
 
 """ Storage services """
 def set_storage(name):

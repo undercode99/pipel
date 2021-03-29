@@ -1,39 +1,38 @@
 import unittest
 from unittest import mock
-from pipel.pipelines.pipeline_validator import ValidateStepsJobPipeline, ValidateJobsPipeline
-from pipel.pipelines.pipeline_run import RunStepsJobPipelines
+from pipel.pipelines.pipeline_run import RunPipelines
+from pipel.pipelines.pipeline_job import Jobs
+from pipel.pipelines.pipeline_step_job import StepRunnerJobManagerPipeline, StepJob
+from pipel.services import run_pipeline
 import yaml
 
 string_yaml_config = """
 jobs:
-  - name: "get_profile_github"
-    script: "script:foo"
+  get_profile_github:
+    scripts: "script:foo"
 
-  - name: "save_to_csv"
-    script: "script:foo"
+  save_to_csv:
+    scripts: "script:foo"
 
-  - name: "save_to_json"
-    script: "script:foo"
+  save_to_json:
+    scripts: "script:foo"
   
-  - name: "ingest_database"
-    type: "command"
-    script: "./script.sh --more "
+  ingest_database:
+    type: "sh"
+    scripts: "./script.sh --more "
 
 run_step_jobs: 
   main:
-    - job: "get_profile_github"
-      sleep_time: 10000
-      retry_error: 4
-      break_error: true
+    get_profile_github:
 
-    - job: "save_to_csv"
+    save_to_csv:
       upstream: 'get_profile_github'
       sleep_time: "100"
 
-    - job: "save_to_json"
+    save_to_csv:
       upstream: 'get_profile_github'
 
-    - job: "ingest_database"
+    ingest_database:
       upstream: [ 'save_to_csv', 'save_to_json' ]
       must_done_all_upstream: false
 """
@@ -48,30 +47,63 @@ config_yaml = load_config_yaml()
 
 class TestRunPipeline(unittest.TestCase):
 
-    def test_register_jobs(self):
-        jobs = config_yaml['jobs']
-        pipe = RunStepsJobPipelines("test_pipeline_running")
-        pipe.registerJobs(jobs)
-        self.assertEqual(jobs,pipe.jobs)
-    
-    def test_register_steps_job(self):
-        steps_job_main = config_yaml['run_step_jobs']['main']
-        pipe = RunStepsJobPipelines("test_pipeline_running")
-        pipe.registerStepJob(steps_job_main)
-        self.assertEqual(steps_job_main,pipe.steps_job)
+    def test_runner_step_job(self):
+      jobs = Jobs({
+          "check_ip_addr": {
+              "type": "sh",
+              "scripts": [
+                  "ip addr"
+              ],
+          },
+          "run_script_foo": {
+            "scripts": "script:foo"
+          },
+          "run_script_bar_payload":{
+            "scripts": "script:send_return_to_bar"
+          },
+          "run_script_bar":{
+            "scripts": "script:bar"
+          }
+      })
 
+      step = RunPipelines(jobs, StepRunnerJobManagerPipeline("test_pipeline_running"))
+      step.addSteps([
+          StepJob("check_ip_addr"),
+          StepJob("run_script_foo", upstream=["check_ip_addr"]),
+          StepJob("run_script_bar_payload"),
+          StepJob("run_script_bar", upstream='run_script_bar_payload'),
+      ])
+      step.run()
 
-    def test_validate_steps_job(self):
-        steps_job_main = config_yaml['run_step_jobs']['main']
-        jobs = config_yaml['jobs']
-        ValidateStepsJobPipeline("test_pipeline_running").validate(
-            steps_job=steps_job_main,
-            jobs=jobs
-        )
+    def test_running_yaml(self):
 
-    def test_validate_jobs(self):
-        jobs = config_yaml['jobs']
-        ValidateJobsPipeline("test_pipeline_running").validate(jobs=jobs)
+      jobs = Jobs(config_yaml['jobs'])
+      step = RunPipelines(jobs, StepRunnerJobManagerPipeline("test_pipeline_running"))
+      for name, option_step in config_yaml['run_step_jobs']['main'].items():
+        step_job = StepJob(name)
+
+        if option_step is None:
+            option_step = {}
+
+        if 'upstream' in option_step:
+          step_job.setUpstream(option_step['upstream'])
+        
+        if 'break_error' in option_step:
+          step_job.setBreakError(option_step['break_error'])
+
+        if 'retry_error' in option_step:
+          step_job.setRetryError(option_step['retry_error'])
+
+        if 'sleep_time' in option_step:
+          step_job.setTimeSleep(option_step['sleep_time'])
+
+        if 'must_done_all_upstream' in option_step:
+          step_job.setMustDoneAllUpstream(option_step['must_done_all_upstream'])
+
+        step.addStep(step_job)
+
+      step.run()
+
 
 
 
