@@ -43,11 +43,13 @@ class Logs:
         print(f"{colors.fg.lightred}{msg}{colors.reset}",file=sys.stderr)
     
     def success(self, msg):
-        print(f"{colors.fg.lightgreen}{msg}{colors.reset}",file=sys.stderr)
+        print(f"{colors.fg.lightgreen}{msg}{colors.reset}",file=sys.stdout)
 
     def warning(self, msg):
-        print(f"{colors.fg.yellow}{msg}{colors.reset}",file=sys.stderr)
+        print(f"{colors.fg.yellow}{msg}{colors.reset}",file=sys.stdout)
     
     def info(self, msg):
-        print(f"{colors.fg.lightblue}{msg}{colors.reset}",file=sys.stderr)
+        print(f"{colors.fg.lightblue}{msg}{colors.reset}",file=sys.stdout)
     
+    def default(self, msg):
+        print(f"{msg}",file=sys.stdout)

@@ -32,7 +32,7 @@ class Job():
         return self.__type_job
 
     def getName(self):
-        return self.__names
+        return self.__name
 
 
 class Jobs():

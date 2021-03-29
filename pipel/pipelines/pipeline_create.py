@@ -6,7 +6,7 @@ class CreatePipelines(Pipelines):
 
     def checkExistsPipelines(self):
         if self._checkDirPipelines() == True:
-            raise ValueError(f"ETL Pipelines already exist with name {self.name}")
+            raise ValueError(f"Pipelines already exist with name {self.name}")
 
     def createDirPipelines(self):
         os.mkdir(self._pathPipelines())
@@ -37,19 +37,26 @@ def ingest_data(data_extract):
 jobs:
   extract_data:
     scripts: extract:extract_data
+
   ingest_data:
     scripts: ingest:ingest_data
+
   print_success:
     type: sh
     scripts: 'echo "Process is success !!!"'
 
+
+
 run_step_jobs:
   main:
     extract_data:
+
     ingest_data: 
       upstream: extract_data
+
     print_success: 
       upstream: ['extract_data', 'ingest_data']
+
         """
         with open(self._pathPipelines("config.yaml"), "w+") as f:
             f.write(config)

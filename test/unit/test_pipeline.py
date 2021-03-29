@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 from pipel.pipelines.pipeline import Pipelines
 
+
 class TestPipeline(unittest.TestCase):
 
     def test_path_dir(self):

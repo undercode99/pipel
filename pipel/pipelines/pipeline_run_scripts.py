@@ -8,6 +8,7 @@ import contextlib
 import io
 import traceback
 import sys
+from pipel.logs import Logs
 
 
 class RunScripts():
@@ -23,6 +24,8 @@ class RunScripts():
     __verbose = True
     __option = {}
 
+    __logs = Logs()
+
     def __init__(self, scripts):
         self.__scripts = scripts
 
@@ -35,14 +38,13 @@ class RunScripts():
     def printOutput(self, data_output):
         if self.__func_callback == None:
             if self.isVerbose():
-                print(data_output)
+                self.__logs.default(data_output)
         else:
             self.__func_callback(data_output)
 
     def printOutputErr(self, data_output_err):
         if self.__func_callback_err == None:
-            if self.isVerbose():
-                print(data_output_err)
+            self.__logs.error(data_output_err)
         else:
             self.__func_callback_err(data_output_err)
 
@@ -108,19 +110,16 @@ class RunBashScripts(RunScripts):
     def saveOutput(self, proccess,  stdtype):
         for line in proccess:
             self.__bash_save_output.append(line)
-
-            out = (stdtype, ": ", line.decode('utf-8').strip())
             if stdtype == 'OUT':
-                self.printOutput(out)
+                self.printOutput(line.decode('utf-8').strip())
             else:
-                self.printOutputErr(out)
+                self.printOutputErr(line.decode('utf-8').strip())
 
     def runBashLinux(self):
         outputs = []
         for script in self.getScript():
             self.__bash_save_output = []
-            with subprocess.Popen(
-                script, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=self.getPathCwd()) as proccess:
+            with subprocess.Popen(script, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, cwd=self.getPathCwd()) as proccess:
                 t1 = threading.Thread(target=self.saveOutput,
                                     args=(proccess.stdout, "OUT"))
                 t2 = threading.Thread(target=self.saveOutput,
@@ -142,6 +141,7 @@ class RunBashScripts(RunScripts):
         self.setExitCode(exit_code)
 
 
+
 class RunPythonScripts(RunScripts): 
 
     __payload = None
@@ -159,8 +159,8 @@ class RunPythonScripts(RunScripts):
 
         module_split = script.split(":")
         if len(module_split) != 2:
-            return self.setError(
-                "ERR: value script {} invalid not have function to excute, Example script job file_script:name_function".format(script)
+            return self.setMessageError(
+                "Value script {} invalid not have function to excute, Example script job file_script:name_function".format(script)
             )
 
         module_path = module_split[0].split(".")
@@ -175,22 +175,23 @@ class RunPythonScripts(RunScripts):
             result = getattr(module, module_split[-1])
 
             if not callable(result):
-                return self.setMessageError("ERR: Script {} not callable".format(module_name))
+                return self.setMessageError("Script {} not callable".format(module_name))
 
         except Exception as e:
-            return self.setMessageError("ERR: {}".format(str(e)))
+            return self.setMessageError("Error {}".format(str(e)))
 
         try:
             if self.isVerbose():
                 self.__payload = self.execFunction(result, payload, option)
             else:
-                with contextlib.redirect_stdout(io.StringIO()):
+                with contextlib.redirect_stdout(io.StringIO()) as o_io:
                     self.__payload = self.execFunction(result, payload, option)
+                    print(o_io)
         except Exception as e:
             if self.isVerbose():
-                self.setMessageError("ERR: {}".format(traceback.format_exc()))
+                self.setMessageError("Error: {}".format(traceback.format_exc()))
             else:
-                self.setMessageError("ERR: {}".format(str(e)))
+                self.setMessageError("Error: {}".format(str(e)))
 
 
     def run(self):

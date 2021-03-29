@@ -1,5 +1,9 @@
 from pipel.pipelines.pipeline_job import Job
 from pipel.pipelines.pipeline import Pipelines
+from datetime import datetime
+from pipel.logs import Logs
+import os
+import json
 
 class StepJob():
 
@@ -16,6 +20,7 @@ class StepJob():
     __time_sleep = 0
 
     __must_done_all_upstream = False
+
 
     def __init__(self, job_name, upstream=[], retry_error=0, break_error=True, time_sleep=0):
         self.__job_name = job_name
@@ -84,44 +89,79 @@ class StepJobManagerPipeline():
 
     __runner_id = None
 
-    __job_name = None
-
-    __job = None
-
     __payload = None
+
+    __logs_file_json = None
 
     __job_data = {
         "job_name": None,
         "type": None,
+        "scripts": None,
 
 
         "start_time": None,
         "finish_time": None,
-        "running_time": None,
+        "elapsed_running_time": None,
 
-        "alloutput": None,
-        "output": None,
-        "error_output": None,
-        "return_data": None,  # this data just on memory not saved data
+        "message_error": [],
         "has_error": False,
         "has_break": False,
-        "times_retry": None,
+        "has_finish": False,
+        "total_times_retry": 0,
     }
 
-    def __init__(self, job: Job):
-        pass
+    def setRunnerId(self, runner_id):
+        self.__runner_id = runner_id
+
+
+    def __init__(self, step_job: StepJob):
+        self.__job_data['job_name'] = step_job.getJobName()
+        self.__job_data['type'] = step_job.getJobType()
+        self.__job_data['scripts'] = step_job.getJobScripts()
+        self.__job_data['start_time'] = datetime.now()
 
     def jobHasFinish(self):
-        pass
+        return self.__job_data['has_finish']
 
-    def allUpstreamHasFinish(self):
-        pass
+    def __saveData(self):
+        job_data = self.__job_data.copy()
+        job_data['start_time'] = str(job_data['start_time'])
+        job_data['finish_time'] = str(job_data['finish_time'])
+        job_data['elapsed_running_time'] = str(job_data['elapsed_running_time'])
+        with open(self.__logs_file_json, "w+") as o:
+            o.write(json.dumps(job_data))
 
-    def finishJob(self):
-        pass
+    def getEplasedRunningTime(self):
+        return self.__job_data['elapsed_running_time']
 
-    def errorJob(self):
-        pass
+    def setFinishJob(self):
+        self.__job_data['finish_time'] = datetime.now()
+        self.__job_data['elapsed_running_time'] = self.__job_data['finish_time'] - self.__job_data['start_time']
+        self.__job_data['has_finish'] = True
+        self.__saveData()
+
+    def setTotalTimesRetry(self, times_retry):
+        self.__job_data['total_times_retry'] = times_retry
+    
+    def setHasBreakProccess(self):
+        self.__job_data['has_break'] = True
+
+    def setErrorJob(self, messages):
+        if type(messages) != list:
+            messages = [messages]
+        for message in messages:
+            self.__job_data['message_error'].append(message)
+
+        self.__job_data['has_error'] = True
+
+
+    def setPathLogs(self, path='.'):
+        path_logs_json = "{}/json_logs".format(path)
+        if not os.path.exists(path_logs_json):
+            os.makedirs(path_logs_json)
+
+        self.__logs_file_json = "{}/{}_{}.json".format(path_logs_json, self.__runner_id, self.__job_data['job_name'])
+
 
     def saveDataPayload(self, payload):
         self.__payload = payload
@@ -130,15 +170,17 @@ class StepJobManagerPipeline():
         return self.__payload
 
 
+
 class StepRunnerJobManagerPipeline(Pipelines):
 
     __list_job = {}
 
     __runner_id = None
 
-    def startJob(self, job: StepJob):
-        self.__list_job[job.getJobName()] = StepJobManagerPipeline(job)
-        return self.__list_job[job.getJobName()]
+    def startJob(self, step_job: StepJob):
+        self.__list_job[step_job.getJobName()] = StepJobManagerPipeline(step_job)
+        self.__list_job[step_job.getJobName()].setRunnerId(self.runner_id)
+        return self.__list_job[step_job.getJobName()]
 
     def getRunnerId(self):
         self.__runner_id = self.runner_id
@@ -148,3 +190,15 @@ class StepRunnerJobManagerPipeline(Pipelines):
         if job_name not in self.__list_job:
             return None
         return self.__list_job[job_name].getPayload()
+
+    def allJobUpstreamHasFinish(self, job_names):
+        has_finish = False
+        for job_name in job_names:
+            if job_name not in self.__list_job:
+                continue
+            if self.__list_job[job_name].jobHasFinish():
+                has_finish = True
+            else:
+                has_finish = False
+        return has_finish
+            

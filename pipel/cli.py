@@ -1,9 +1,11 @@
 """Pipel 1.0.
 
 Usage:
-  pipel new <name> [-d | --dir]
+  pipel new <name> [--dir]
   pipel create <name>
-  pipel run <name> [-v | --verbose] [-d | --dir]
+  pipel run <name> [-d | --deamon]
+  pipel stop <name>
+  pipel logs <name>
   pipel list
   pipel storage info <name>
   pipel storage clean <name>
@@ -15,14 +17,13 @@ Help:
 Options:
   -h --help     Show this screen.
   --version     Show version.
-  -v --verbose  Show verbose data output
-  -d --dir      Working dir location
+  -d --deamon   Running on deamon
 
 
 """
 from docopt import docopt
 from pipel.logs import Logs
-from pipel.services import create_new_project, create_pipeline, run_pipeline,info_storage_pipeline,remove_storage_pipeline
+from pipel.services import create_new_project, create_pipeline, run_pipeline,info_storage_pipeline,remove_storage_pipeline,stop_pipeline,tail_logs_pipelines
 import traceback
 
 
@@ -32,7 +33,18 @@ def main():
         if arguments['run'] == True:
             run_pipeline(
               name=arguments['<name>'], 
-              verbose=arguments['--verbose'])
+              verbose=True,
+              run_in_daemon=arguments['--deamon'])
+
+        if arguments['stop'] == True:
+            stop_pipeline(
+              name=arguments['<name>']
+            )
+
+        if arguments['logs'] == True:
+            tail_logs_pipelines(
+              name=arguments['<name>']
+            )
 
         if arguments['create'] == True:
             create_pipeline(arguments['<name>'])
@@ -49,5 +61,4 @@ def main():
     except Exception as e:
         l = Logs()
         l.error(e)
-        if arguments['--verbose']:
-          l.error(traceback.format_exc())
+        l.error(traceback.format_exc())

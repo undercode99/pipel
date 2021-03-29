@@ -19,7 +19,7 @@ jobs:
   
   ingest_database:
     type: "sh"
-    scripts: "./script.sh --more "
+    scripts: "bash script.sh --more "
 
 run_step_jobs: 
   main:
@@ -27,7 +27,7 @@ run_step_jobs:
 
     save_to_csv:
       upstream: 'get_profile_github'
-      sleep_time: "100"
+      time_sleep: "100"
 
     save_to_csv:
       upstream: 'get_profile_github'
@@ -67,6 +67,7 @@ class TestRunPipeline(unittest.TestCase):
       })
 
       step = RunPipelines(jobs, StepRunnerJobManagerPipeline("test_pipeline_running"))
+      step.setVerbose(False)
       step.addSteps([
           StepJob("check_ip_addr"),
           StepJob("run_script_foo", upstream=["check_ip_addr"]),
@@ -79,6 +80,7 @@ class TestRunPipeline(unittest.TestCase):
 
       jobs = Jobs(config_yaml['jobs'])
       step = RunPipelines(jobs, StepRunnerJobManagerPipeline("test_pipeline_running"))
+      step.setVerbose(False)
       for name, option_step in config_yaml['run_step_jobs']['main'].items():
         step_job = StepJob(name)
 
@@ -94,8 +96,8 @@ class TestRunPipeline(unittest.TestCase):
         if 'retry_error' in option_step:
           step_job.setRetryError(option_step['retry_error'])
 
-        if 'sleep_time' in option_step:
-          step_job.setTimeSleep(option_step['sleep_time'])
+        if 'time_sleep' in option_step:
+          step_job.setTimeSleep(option_step['time_sleep'])
 
         if 'must_done_all_upstream' in option_step:
           step_job.setMustDoneAllUpstream(option_step['must_done_all_upstream'])

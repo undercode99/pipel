@@ -1,2 +1,1 @@
-
-echo "Hi, iam from command "
+echo 'from script'
