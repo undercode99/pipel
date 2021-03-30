@@ -115,7 +115,7 @@ class RunPipelines():
                 working_directory=os.getcwd(),
                 umask=0o002,
                 pidfile=daemon.pidfile.TimeoutPIDLockFile(path_pid),
-        ) as context:
+        ):
             self.startingRunJob()
 
     def startingRunJob(self):
